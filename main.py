@@ -14,6 +14,8 @@ import utils
 
 import json
 import mauve
+from pathlib import Path
+
 
 omegaconf.OmegaConf.register_new_resolver(
   'cwd', os.getcwd)
@@ -96,7 +98,7 @@ def generate_samples(config, logger, tokenizer):
     model.ema = None
   stride_length = config.sampling.stride_length
   num_strides = config.sampling.num_strides
-
+  model = model.to("cuda")
   samples = []
   entropies = []
   for _ in range(config.sampling.num_sample_batches):
@@ -206,27 +208,135 @@ def main(config):
   
   logger = utils.get_logger(__name__)
   tokenizer = dataloader.get_tokenizer(config)
+  if config.mode == "sample_eval":
+      samples, gen_ppl, entropies = generate_samples(
+          config,
+          logger,
+          tokenizer,
+      )
 
-  if config.mode == 'sample_eval':
-    samples, gen_ppl, entropies = generate_samples(config, logger, tokenizer)
-    # compute MAUVE score
-    # human_references = []
-    # _, valid_loader = dataloader.get_dataloaders(config, tokenizer, valid_seed=config.seed, skip_train=True)
-    # for _ in range(config.sampling.num_sample_batches):    
-    #     batch = next(iter(valid_loader))
-    #     input_ids = batch['input_ids']
-    #     human_references.extend(tokenizer.batch_decode(input_ids))
-    # assert len(samples) == len(human_references)
-    # results = mauve.compute_mauve(p_text=human_references, q_text=samples, device_id=0, max_text_length=1024, verbose=False)
-    # mauve_score = results.mauve
-    mauve_score = 0.0
-    result_dict = {'gen_ppl': gen_ppl, 'entropy': sum(entropies) / len(entropies), 'MAUVE': mauve_score, 'entropies': entropies, 'text_samples': samples}
-    with open(config.sampling.generated_seqs_path, "w") as file:
-        json.dump(result_dict, file, indent=4)
-  elif config.mode == 'ppl_eval':
-    _ppl_eval(config, logger, tokenizer)
+      # ---------------------------------------------------------
+      # Collect human reference texts
+      # ---------------------------------------------------------
+      human_references = []
+
+      _, valid_loader = dataloader.get_dataloaders(
+          config,
+          tokenizer,
+          valid_seed=config.seed,
+          skip_train=True,
+      )
+
+      # Create the iterator only once.
+      valid_iterator = iter(valid_loader)
+
+      for _ in range(config.sampling.num_sample_batches):
+          try:
+              batch = next(valid_iterator)
+          except StopIteration as error:
+              raise RuntimeError(
+                  "The validation loader does not contain enough batches "
+                  "for config.sampling.num_sample_batches."
+              ) from error
+
+          input_ids = batch["input_ids"]
+
+          decoded_references = tokenizer.batch_decode(
+              input_ids,
+              skip_special_tokens=True,
+          )
+          human_references.extend(decoded_references)
+
+      # If the last validation batch produced extra references,
+      # keep exactly as many references as generated samples.
+      if len(human_references) < len(samples):
+          raise ValueError(
+              f"Not enough human references: "
+              f"{len(human_references)} references for {len(samples)} samples."
+          )
+
+      human_references = human_references[:len(samples)]
+
+      assert len(samples) == len(human_references)
+
+      # ---------------------------------------------------------
+      # Save normal generation results
+      # ---------------------------------------------------------
+      result_dict = {
+          "gen_ppl": float(gen_ppl),
+          "entropy": float(sum(entropies) / len(entropies)),
+          "entropies": [float(value) for value in entropies],
+          "text_samples": samples,
+      }
+
+      generated_path = Path(config.sampling.generated_seqs_path)
+      generated_path.parent.mkdir(parents=True, exist_ok=True)
+
+      with generated_path.open("w", encoding="utf-8") as file:
+          json.dump(
+              result_dict,
+              file,
+              indent=4,
+              ensure_ascii=False,
+          )
+
+      # ---------------------------------------------------------
+      # Remove .json and append _mauve_inputs.json
+      #
+      # Example:
+      # generated_samples.json
+      # -> generated_samples_mauve_inputs.json
+      # ---------------------------------------------------------
+      if generated_path.suffix.lower() == ".json":
+          base_path = generated_path.with_suffix("")
+      else:
+          base_path = generated_path
+
+      mauve_inputs_path = Path(f"{base_path}_mauve_inputs.json")
+
+      mauve_input_data = {
+          "human_references": human_references,
+          "samples": samples,
+      }
+
+      with mauve_inputs_path.open("w", encoding="utf-8") as file:
+          json.dump(
+              mauve_input_data,
+              file,
+              indent=4,
+              ensure_ascii=False,
+          )
+
+      logger.info("Generation results saved to: %s", generated_path)
+      logger.info("MAUVE inputs saved to: %s", mauve_inputs_path)
+
+  elif config.mode == "ppl_eval":
+      _ppl_eval(config, logger, tokenizer)
+
   else:
-    _train(config, logger, tokenizer)
+      _train(config, logger, tokenizer)
+  
+  # if config.mode == 'sample_eval':
+  #   samples, gen_ppl, entropies = generate_samples(config, logger, tokenizer)
+  #   # compute MAUVE score
+  #   human_references = []
+  #   _, valid_loader = dataloader.get_dataloaders(config, tokenizer, valid_seed=config.seed, skip_train=True)
+  #   for _ in range(config.sampling.num_sample_batches):    
+  #       batch = next(iter(valid_loader))
+  #       input_ids = batch['input_ids']
+  #       human_references.extend(tokenizer.batch_decode(input_ids))
+  #   assert len(samples) == len(human_references)
+
+  #   # results = mauve.compute_mauve(p_text=human_references, q_text=samples, device_id=0, max_text_length=1024, verbose=False)
+  #   mauve_score = results.mauve
+  #   mauve_score = 0.0
+  #   result_dict = {'gen_ppl': gen_ppl, 'entropy': sum(entropies) / len(entropies), 'MAUVE': mauve_score, 'entropies': entropies, 'text_samples': samples}
+  #   with open(config.sampling.generated_seqs_path, "w") as file:
+  #       json.dump(result_dict, file, indent=4)
+  # elif config.mode == 'ppl_eval':
+  #   _ppl_eval(config, logger, tokenizer)
+  # else:
+  #   _train(config, logger, tokenizer)
 
 
 if __name__ == '__main__':

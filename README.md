@@ -148,7 +148,7 @@ python -u -m main \
 
 # Tempral Commands:
 
-python -u -m main \
+python -u -m random_perturbation_experiment \
     mode=sample_eval \
     loader.batch_size=8 \
     loader.eval_batch_size=8 \
@@ -165,7 +165,7 @@ python -u -m main \
     T=0 \
     sampling.steps=19 \
     seed=1 \
-    sampling.num_sample_batches=120 \
+    sampling.num_sample_batches=40 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-32.json" \
     sampling.nucleus_p=0.9 \
     sampling.sampler="remasking-via-shortcut-removal" \
