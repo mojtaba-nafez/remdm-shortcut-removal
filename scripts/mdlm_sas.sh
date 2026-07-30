@@ -66,7 +66,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path=${generated_seqs_path} \
     sampling.nucleus_p=${p} \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     hydra.job.chdir=false \
     +model.remove_self_attn=${remove_self_attn} \
     +sampling.revise_step=${revise_step} \

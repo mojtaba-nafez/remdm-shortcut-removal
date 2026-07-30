@@ -700,7 +700,7 @@ class Diffusion(L.LightningModule):
     move_chance_s = (t - dt)[:, None, None]
     assert move_chance_t.ndim == 3, move_chance_t.shape
     
-    if (p_x0 is None) or (self.config.sampling.sampler == 'remasking-via-shortcut-removal'):
+    if (p_x0 is None) or (self.config.sampling.sampler == 'shortcut-aware-sampler'):
       p_x0 = self.forward(x, sigma_t).exp()
       # print("x.shape", x.shape) # torch.Size([8, 1024])
       # print("p_x0.shape", p_x0.shape) # torch.Size([8, 1024, 50258])
@@ -818,7 +818,7 @@ class Diffusion(L.LightningModule):
         copy_flag = (x != self.mask_index).to(torch.bool)
         q_xs = torch.where(copy_flag.unsqueeze(-1), q_xs, q_xs_2)
         xs = _sample_categorical(q_xs)
-    elif self.config.sampling.sampler == 'remasking-via-shortcut-removal':
+    elif self.config.sampling.sampler == 'shortcut-aware-sampler':
         pred, conf = _sample_categorical_v2(p_x0)
         xs = x.clone()
         B, L = x.shape
@@ -836,30 +836,24 @@ class Diffusion(L.LightningModule):
         min_remask = 2
         remasking_mode_per_step_unmasking = base + max(min_remask, int(1.0 * each_step_change)) 
         remasking_mode_per_step_remasking = max(min_remask, int(1.0 * each_step_change))
-        # print("default_per_step_unmasking", default_per_step_unmasking)
-        # print("remasking_start_step", remasking_start_step)
-        # print("remasking_mode_per_step_unmasking", remasking_mode_per_step_unmasking)
-        # print("remasking_mode_per_step_remasking", remasking_mode_per_step_remasking)
         mask_flag = (x == self.mask_index)
         for b in range(B):
             idx = torch.where(mask_flag[b])[0]
             if len(idx) == 0:
                 continue
             if (step > remasking_start_step) and revise_step:
-            # if (step > 300 and step < 900) and revise_step:
               k = min(remasking_mode_per_step_unmasking, len(idx))
-              print(f"step: {step} - remasking_mode_per_step_unmasking: {remasking_mode_per_step_unmasking} - num of un-masked tokens: {k}")
+              # print(f"step: {step} - remasking_mode_per_step_unmasking: {remasking_mode_per_step_unmasking} - num of un-masked tokens: {k}")
             else:
               k = min(default_per_step_unmasking, len(idx))
-              print(f"step: {step} - default_per_step_unmasking: {default_per_step_unmasking} - num of un-masked tokens: {k}")
-            conf = torch.rand(conf.shape).cuda()
+              # print(f"step: {step} - default_per_step_unmasking: {default_per_step_unmasking} - num of un-masked tokens: {k}")
+            # conf = torch.rand(conf.shape).cuda()
             
             scores = conf[b, idx]
             chosen = idx[torch.topk(scores, k=k).indices]
             xs[b, chosen] = pred[b, chosen]
 
         if (step > remasking_start_step) and revise_step and (step < (self.config.sampling.steps-1)):
-        # if (step > 300 and step < 900) and revise_step:
             p_x0_2 = self.forward(xs, sigma_t, revise_step=revise_step, mask_embedding_blending=mask_embedding_blending).exp()
             pred_tokens = p_x0_2.argmax(dim=-1)
             _, conf = _sample_categorical_v2(p_x0_2)
@@ -877,9 +871,7 @@ class Diffusion(L.LightningModule):
                     continue
                 scores = conf[b, valid_idx]
                 k = min(remasking_mode_per_step_remasking, len(scores))
-                # print(f"step {step} - remasking_mode_per_step_remasking: {remasking_mode_per_step_remasking} - num of re-masked tokens for next step: {k}")
                 remask_pos = valid_idx[torch.topk(scores, k=k, largest=False).indices]
-                # remask_pos = valid_idx[torch.argmin(scores)]
                 xs[b, remask_pos] = self.mask_index
               
     if torch.allclose(xs, x) and not self.time_conditioning:
@@ -890,64 +882,6 @@ class Diffusion(L.LightningModule):
     return p_x0_cache, xs, conf
 
 
-
-  def _confidence_unmask_revise(self,x, t, dt, p_x0=None, conf=None, revise_step=False, step=0):
-      sigma_t, _ = self.noise(t)
-      p_x0 = self.forward(x, sigma_t, revise_step=False).exp()
-      if self.config.sampling.nucleus_p < 1:
-          sorted_probs, sorted_indices = torch.sort(p_x0, descending=True, dim=-1)
-          cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
-          top_p_mask = cumulative_probs <= self.config.sampling.nucleus_p
-          top_p_mask[..., 0] = True
-          sorted_probs = sorted_probs * top_p_mask
-          sorted_probs = sorted_probs / sorted_probs.sum(dim=-1, keepdim=True)
-          p_x0 = torch.zeros_like(p_x0).scatter_(-1, sorted_indices, sorted_probs)
-      
-      pred, conf = _sample_categorical_v2(p_x0)
-      xs = x.clone()
-      B, L = x.shape
-      mask_flag = (x == self.mask_index)
-
-      for b in range(B):
-          idx = torch.where(mask_flag[b])[0]
-          if len(idx) == 0:
-              continue
-          if step > 300:
-            k = min(2, len(idx))
-          else:
-            k = min(1, len(idx))
-          conf = torch.rand(conf.shape).cuda()
-          scores = conf[b, idx]
-          chosen = idx[torch.topk(scores, k=k).indices]
-          xs[b, chosen] = pred[b, chosen]
-
-      if step > 300:
-          p_x0_2 = self.forward(xs, sigma_t, revise_step=True).exp()
-          pred_tokens = p_x0_2.argmax(dim=-1)
-          _, conf = _sample_categorical_v2(p_x0_2)
-
-          for b in range(B):
-              mask_idx = (xs[b] != self.mask_index) & (pred_tokens[b] != xs[b])
-              if mask_idx.sum() == 0:
-                  mask_idx = (xs[b] != self.mask_index)
-              visible_idx = torch.where(mask_idx)[0]
-              if len(visible_idx) == 0:
-                  continue
-              newly_added = torch.isin(visible_idx, chosen if len(visible_idx) > 0 else visible_idx)
-              valid_idx = visible_idx[~newly_added] if newly_added.any() else visible_idx
-              if len(valid_idx) == 0:
-                  continue
-              scores = conf[b, valid_idx]
-              remask_pos = valid_idx[torch.topk(scores, k=1, largest=False).indices]
-              # remask_pos = valid_idx[torch.argmin(scores)]
-              xs[b, remask_pos] = self.mask_index
-          
-      if torch.allclose(xs, x) and not self.time_conditioning:
-          p_x0_cache = p_x0
-      else:
-          p_x0_cache = None
-      return p_x0_cache, xs, conf
-      
 
   def _ddpm_update(self, x, t, dt):
     sigma_t, _ = self.noise(t)
@@ -1049,7 +983,6 @@ class Diffusion(L.LightningModule):
         elif self.sampler == 'ddpm_cache':
           x_prev = x.clone()
           
-          # p_x0_cache, x_next, confident_score = self._confidence_unmask_revise(x, t, dt, p_x0=p_x0_cache, conf=confident_score, revise_step=True, step=i)
           p_x0_cache, x_next, confident_score = self._ddpm_caching_update(x, t, dt, p_x0=p_x0_cache, conf=confident_score, revise_step=revise_step, mask_embedding_blending=mask_embedding_blending, step=i)
           x = x_next
           '''

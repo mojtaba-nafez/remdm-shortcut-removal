@@ -1,29 +1,11 @@
 '''
 python -u -m random_perturbation_experiment \
-    mode=sample_eval \
-    loader.batch_size=8 \
-    loader.eval_batch_size=8 \
-    eval.perplexity_batch_size=1 \
-    data=openwebtext-split \
     model=small \
-    parameterization=subs \
     backbone=dit \
     model.length=1024 \
     eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
-    time_conditioning=false \
-    +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
-    T=0 \
-    sampling.steps=19 \
-    seed=1 \
-    sampling.num_sample_batches=40 \
-    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-32.json" \
-    sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
-    +sampling.revise_step=false \
     +model.remove_self_attn=false \
     +sampling.mask_embedding_blending=false
-
 '''
 import os
 
@@ -125,8 +107,9 @@ def main(config):
     num_strides = config.sampling.num_strides
     model = model.to("cuda")
 
+    print(f"mask_embedding_blending{config.sampling.mask_embedding_blending}, config.model.remove_self_attn{config.model.remove_self_attn}")
 
-    text = Path("/home/nafez/scratch/dllm-revision-sampler/text_clean.txt").read_text(encoding="utf-8")
+    text = Path("text_clean.txt").read_text(encoding="utf-8")
     token_ids = tokenizer.encode(text)
     chunk_size = 1024
     vocab_size = tokenizer.vocab_size
@@ -134,9 +117,6 @@ def main(config):
     print(f"Loaded {len(token_ids)} tokens ({n_chunks} chunks of {chunk_size})")
     # mask_id = tokenizer.mask_token_id
     mask_id = 50257
-    eps = 1e-5
-    steps = 1024
-    i = 1023
     
     def _process_sigma(sigma):
         if sigma is None:
@@ -148,13 +128,7 @@ def main(config):
           sigma = torch.zeros_like(sigma)
         assert sigma.ndim == 1, sigma.shape
         return sigma
-    # timesteps = model._get_sampling_time_profile(eps, steps)
-    noise = noise_schedule.get_noise(config,
-                                      dtype=torch.float64)
-    t = torch.tensor(0.99, device=model.device)   # or device=model.device
-    sigma_t, _ = noise(t)
-
-    # Tracking Variables (Pass-1, Pass-5, and Pass-10 counters)
+   
     total_correct = 0
     total_correct_top5 = 0
     total_correct_top10 = 0
@@ -171,6 +145,8 @@ def main(config):
     total_clean_token_correct_top10 = 0
     
     model.eval()
+    model.backbone.remove_self_attn = config.model.remove_self_attn
+
     with torch.no_grad():
         for chunk_idx in range(n_chunks):
             start = chunk_idx * chunk_size
@@ -193,20 +169,11 @@ def main(config):
             if num_corrupted == 0:
                 continue
                 
-            # t = timesteps[i] * torch.ones(x.shape[0], 1, device=model.device)
-            # _, alpha_t = model.noise(t)
-            # sigma = model._sigma_from_alphat(alpha_t)
-            # sigma = model._process_sigma(sigma)
-            sigma_t = sigma_t.expand(x.size(0))
+           
             with torch.amp.autocast('cuda', dtype=torch.float32):
-                # logits = model.backbone(x=x, sigma=sigma, class_cond=None, weights=None, mask_embedding_blending=False, remove_self_attn=False)#.argmax(dim=-1)
-                # logits = model.backbone(x=x, sigma=sigma, class_cond=None, weights=None, mask_embedding_blending=True, remove_self_attn=False)#.argmax(dim=-1)
-                # logits = model.backbone(x=x, sigma=sigma, class_cond=None, weights=None, mask_embedding_blending=False, remove_self_attn=True)#.argmax(dim=-1)
-                # logits = model.backbone(x=x, sigma=sigma, class_cond=None, weights=None, mask_embedding_blending=True, remove_self_attn=True)# .argmax(dim=-1)
-                logits = model(x, sigma_t, mask_embedding_blending=False)
-
+                sigma = torch.tensor([0.], device=x.device)
+                logits = model.backbone(x, sigma=sigma, mask_embedding_blending=config.sampling.mask_embedding_blending)
             
-            # logits = torch.where(~corruption_mask.unsqueeze(-1), logits, torch.tensor(-float('inf'), device=logits.device))
             # --- PASS-1 PREDICTIONS ---
             pred_tokens = logits.argmax(dim=-1)
             
@@ -294,11 +261,6 @@ def main(config):
         f"  Pass-5:  {overall_acc_top5:.6f}% ({(total_clean_token_correct_top5 + total_correct_top5)}/{(total_corrupted + total_clean)})\n"
         f"  Pass-10: {overall_acc_top10:.6f}% ({(total_clean_token_correct_top10 + total_correct_top10)}/{(total_corrupted + total_clean)})"
     )
-
-
-
-
- 
 
 if __name__ == '__main__':
   main()

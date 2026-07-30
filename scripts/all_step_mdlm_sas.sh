@@ -33,7 +33,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-32.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -60,7 +60,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-64.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -87,7 +87,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-128.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -114,7 +114,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-256.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -140,7 +140,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-512.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -166,7 +166,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-1024.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -192,7 +192,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-2048.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
@@ -221,7 +221,7 @@ python -u -m main \
     sampling.num_sample_batches=625 \
     sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-4096.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
+    sampling.sampler="shortcut-aware-sampler" \
     +sampling.revise_step=true \
     +model.remove_self_attn=true \
     +sampling.mask_embedding_blending=true
