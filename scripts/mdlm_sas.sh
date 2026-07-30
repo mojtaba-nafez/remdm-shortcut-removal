@@ -63,7 +63,7 @@ python -u -m main \
     T=${T} \
     sampling.steps=${sampling_steps} \
     seed=1 \
-    sampling.num_sample_batches=200 \
+    sampling.num_sample_batches=625 \
     sampling.generated_seqs_path=${generated_seqs_path} \
     sampling.nucleus_p=${p} \
     sampling.sampler="remasking-via-shortcut-removal" \

@@ -13,8 +13,6 @@ export TORCH_DISTRIBUTED_DEBUG=DETAIL
 
 export HYDRA_FULL_ERROR=1
 
-
-
 python -u -m main \
     mode=sample_eval \
     loader.batch_size=8 \
@@ -28,53 +26,17 @@ python -u -m main \
     eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
     time_conditioning=false \
     +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
     T=0 \
-    sampling.steps=32 \
+    sampling.steps=18 \
     seed=1 \
     sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_32.json" \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-32.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false
-
-
-python -u -m main \
-    mode=sample_eval \
-    loader.batch_size=8 \
-    loader.eval_batch_size=8 \
-    eval.perplexity_batch_size=1 \
-    data=openwebtext-split \
-    model=small \
-    parameterization=subs \
-    backbone=dit \
-    model.length=1024 \
-    eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
-    time_conditioning=false \
-    +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
-    T=0 \
-    sampling.steps=64 \
-    seed=1 \
-    sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_64.json" \
-    sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
 
 
 
@@ -91,22 +53,17 @@ python -u -m main \
     eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
     time_conditioning=false \
     +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
     T=0 \
-    sampling.steps=128 \
+    sampling.steps=37 \
     seed=1 \
     sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_128.json" \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-64.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
 
 
 
@@ -123,22 +80,17 @@ python -u -m main \
     eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
     time_conditioning=false \
     +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
     T=0 \
-    sampling.steps=256 \
+    sampling.steps=74 \
     seed=1 \
     sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_256.json" \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-128.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
 
 
 
@@ -155,22 +107,97 @@ python -u -m main \
     eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
     time_conditioning=false \
     +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
     T=0 \
-    sampling.steps=512 \
+    sampling.steps=147 \
     seed=1 \
     sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_512.json" \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-256.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
+
+
+python -u -m main \
+    mode=sample_eval \
+    loader.batch_size=8 \
+    loader.eval_batch_size=8 \
+    eval.perplexity_batch_size=1 \
+    data=openwebtext-split \
+    model=small \
+    parameterization=subs \
+    backbone=dit \
+    model.length=1024 \
+    eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
+    time_conditioning=false \
+    +wandb.offline=true \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
+    T=0 \
+    sampling.steps=293 \
+    seed=1 \
+    sampling.num_sample_batches=625 \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-512.json" \
+    sampling.nucleus_p=0.9 \
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
+
+
+python -u -m main \
+    mode=sample_eval \
+    loader.batch_size=8 \
+    loader.eval_batch_size=8 \
+    eval.perplexity_batch_size=1 \
+    data=openwebtext-split \
+    model=small \
+    parameterization=subs \
+    backbone=dit \
+    model.length=1024 \
+    eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
+    time_conditioning=false \
+    +wandb.offline=true \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
+    T=0 \
+    sampling.steps=586 \
+    seed=1 \
+    sampling.num_sample_batches=625 \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-1024.json" \
+    sampling.nucleus_p=0.9 \
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
+
+
+python -u -m main \
+    mode=sample_eval \
+    loader.batch_size=8 \
+    loader.eval_batch_size=8 \
+    eval.perplexity_batch_size=1 \
+    data=openwebtext-split \
+    model=small \
+    parameterization=subs \
+    backbone=dit \
+    model.length=1024 \
+    eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
+    time_conditioning=false \
+    +wandb.offline=true \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
+    T=0 \
+    sampling.steps=1171 \
+    seed=1 \
+    sampling.num_sample_batches=625 \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-2048.json" \
+    sampling.nucleus_p=0.9 \
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
+
+
 
 
 
@@ -187,50 +214,15 @@ python -u -m main \
     eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
     time_conditioning=false \
     +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
+    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
     T=0 \
-    sampling.steps=1024 \
+    sampling.steps=2341 \
     seed=1 \
     sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_1024.json" \
+    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-4096.json" \
     sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false
+    sampling.sampler="remasking-via-shortcut-removal" \
+    +sampling.revise_step=true \
+    +model.remove_self_attn=true \
+    +sampling.mask_embedding_blending=true
 
-
-python -u -m main \
-    mode=sample_eval \
-    loader.batch_size=8 \
-    loader.eval_batch_size=8 \
-    eval.perplexity_batch_size=1 \
-    data=openwebtext-split \
-    model=small \
-    parameterization=subs \
-    backbone=dit \
-    model.length=1024 \
-    eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
-    time_conditioning=false \
-    +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-loop" \
-    T=0 \
-    sampling.steps=2048 \
-    seed=1 \
-    sampling.num_sample_batches=625 \
-    sampling.generated_seqs_path="${PWD}/outputs/loop_remdm_mdlm_2048.json" \
-    sampling.nucleus_p=0.9 \
-    sampling.sampler=remdm-loop \
-    sampling.eta=0.02 \
-    sampling.t_on=0.55 \
-    sampling.t_off=0.05 \
-    sampling.alpha_on=0.9 \
-    hydra.job.chdir=false \
-    +model.remove_self_attn=false \
-    +sampling.revise_step=false \
-    +sampling.mask_embedding_blending=false

@@ -145,30 +145,3 @@ python -u -m main \
 ```
 
 
-
-# Tempral Commands:
-
-python -u -m random_perturbation_experiment \
-    mode=sample_eval \
-    loader.batch_size=8 \
-    loader.eval_batch_size=8 \
-    eval.perplexity_batch_size=1 \
-    data=openwebtext-split \
-    model=small \
-    parameterization=subs \
-    backbone=dit \
-    model.length=1024 \
-    eval.checkpoint_path="${PWD}/weights/mdlm.ckpt" \
-    time_conditioning=false \
-    +wandb.offline=true \
-    hydra.run.dir="${PWD}/outputs/remdm-shortcut-aware-sampling" \
-    T=0 \
-    sampling.steps=19 \
-    seed=1 \
-    sampling.num_sample_batches=40 \
-    sampling.generated_seqs_path="${PWD}/outputs/mdlm-sas-32.json" \
-    sampling.nucleus_p=0.9 \
-    sampling.sampler="remasking-via-shortcut-removal" \
-    +sampling.revise_step=true \
-    +model.remove_self_attn=true \
-    +sampling.mask_embedding_blending=true
